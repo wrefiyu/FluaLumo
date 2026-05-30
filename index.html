@@ -1,1 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人介绍</title>
+  <style>
+    /* --- 1. 等待画面 (保持原样) --- */
+    #loading-page {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(240, 247, 255, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      z-index: 999999; opacity: 1; visibility: visible;
+      transition: opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 2.5s;
+      pointer-events: all;
+    }
+    .loading-img { width: 180px; height: 180px; display: block; animation: spin-loading 2s linear infinite; }
+    .loading-text { margin-top: 30px; font-size: 18px; color: #336699; font-family: "MingGu", serif; letter-spacing: 4px; font-weight: bold; text-align: center; }
+    @keyframes spin-loading { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .loading-hidden { opacity: 0 !important; visibility: hidden !important; }
 
+    /* --- 2. 外部资源与字体 --- */
+    @font-face {
+      font-family: "MingGu";
+      src: url("font.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    /* --- 3. 基础布局与背景层级 --- */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      line-height: 1.8; color: #1a202c;
+      background: url('back.png') no-repeat center top / cover fixed, #f0f7ff;
+      min-height: 100vh; position: relative; overflow-x: hidden;
+      font-family: "MingGu", sans-serif; visibility: hidden;
+    }
+    body.content-ready { visibility: visible; }
+
+    /* 特效层画布层级：磁场(-2) < 鸟印(-1) < 正文 */
+    #magneticCanvas, #birdCanvas { position: fixed; top: 0; left: 0; pointer-events: none; }
+    #magneticCanvas { z-index: -2; }
+    #birdCanvas { z-index: -1; }
+
+    /* 故障艺术背景组件 */
+    .bg-grid, .bg-noise, #glitch-overlay, #glitch-blocks { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    .bg-grid { background-image: linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px); background-size: 20px 20px; z-index: -4; }
+    .bg-noise { z-index: -3; opacity: 0.15; mix-blend-mode: multiply; }
+    #glitch-blocks { z-index: 99; overflow: hidden; }
+    #glitch-overlay { z-index: 100; }
+
+    /* 装饰组件 */
+    .error-window { position: fixed; backdrop-filter: blur(5px); opacity: 0.9; background: rgba(230, 242, 255, 0.6); border: 2px solid; border-color: #f0f8ff #b3d9ff #b3d9ff #f0f8ff; padding: 2px; width: 220px; z-index: 10; font-size: 12px; font-family: "MingGu", serif; pointer-events: none; transition: opacity 0.5s ease-out; }
+    .error-header { background: #b3d9ff; color: #336699; padding: 2px 5px; font-weight: bold; display: flex; justify-content: space-between; }
+    .error-body { padding: 10px; border: 1px inset #b3d9ff; margin-top: 2px; text-align: center; color: #446688; }
+    .screen-lines div { position: absolute; height: 100%; pointer-events: none; z-index: 5; }
+    .line-1 { right: 10%; width: 2px; background: rgba(255, 99, 71, 0.5); }
+    .line-2 { right: 18%; width: 4px; background: rgba(255, 165, 0, 0.4); }
+    .line-31 { right: 25%; width: 1px; background: rgba(60, 179, 113, 0.5); }
+    .line-32 { right: 26%; width: 5px; background: rgba(60, 179, 113, 0.3); }
+    .line-4 { left: 5%; width: 3px; background: rgba(106, 90, 205, 0.65); }
+    .line-5 { right: 35%; width: 2px; background: rgba(220, 180, 255, 0.3); box-shadow: 0 0 5px rgba(220, 180, 255, 0.5); }
+
+    .container { max-width: 800px; margin: 0 auto; padding: 6rem 2rem; position: relative; z-index: 20; }
+    .main-title { position: relative; font-family: "MingGu", serif; font-size: clamp(3rem, 8vw, 6rem); font-weight: 900; color: #000; }
+    .main-title::before, .main-title::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.7; }
+    .main-title::before { left: 4px; color: rgba(255, 105, 180, 0.35); }
+    .main-title::after { left: -4px; color: rgba(70, 130, 180, 0.5); }
+    .english-subtitle { font-size: clamp(1.2rem, 3vw, 1.8rem); font-weight: bold; color: white; display: inline-block; padding: 0 10px; margin-top: 1rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
+    h2 { font-family: "MingGu", serif; font-size: 1.5rem; color: #000; margin: 3rem 0 1rem; text-align: center; }
+    .intro { font-family: "MingGu", serif; font-style: italic; max-width: 600px; margin: 0 auto 2rem; text-align: center; color: #26181F; }
+    a { color: #26181F; }
+    footer { margin-top: 8rem; font-size: 0.8rem; color: #444; text-align: center; border-top: 1px solid #808080; padding: 2rem; }
+  </style>
+</head>
+<body>
+
+  <div id="loading-page">
+    <img src="waiting.png" alt="Loading" class="loading-img">
+    <div class="loading-text">欢迎...如想继续，请稍候...</div>
+  </div>
+
+  <div id="glitch-blocks"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise" id="noise"></div>
+  <div id="glitch-overlay"></div>
+  <div class="screen-lines">
+    <div class="line-1"></div><div class="line-2"></div>
+    <div class="line-31"></div><div class="line-32"></div>
+    <div class="line-4"></div><div class="line-5"></div>
+  </div>
+
+  <canvas id="magneticCanvas"></canvas>
+  <canvas id="birdCanvas"></canvas>
+
+  <div class="container">
+    <div class="title-group">
+      <h1 class="main-title" data-text="Inna❖琳">Inna☂琳</h1>
+      <div class="english-subtitle">Ankaŭ❖Also,wrefiyu✱Kartina</div>
+    </div>
+    
+    <div class="subtitle-wrapper">
+      <div class="intro">
+        <h2>Enkonduko❖Overview</h2>
+        <p>Saluton! 我是Inna☂琳，</p>
+        <p>你可以直接称呼我Inna(茵娜)或琳酱。</p>
+        <p>是有点可爱的高中生(也许)。</p>
+        <p>生日是儿童节(6月1日)。</p>
+        <p>Lineage / Asahi Linux / Mac OSX使用者。</p>
+        <p>我说中文，也可以说英文。正在学习世界语。</p>
+        <p>十六型人格是INFJ-T。</p>
+        <p>喜欢音乐(钢琴/乐队/编曲)，热衷平面设计。</p>
+        <p>2023年开始玩《明日方舟》，是死忠粉。</p>
+        <p>喜欢宅在家不喜欢出门。</p>
+        <p>你可用我以前使用的id</p>
+        <p>( wrefiyu / 浊心 / 浊化之心 / Kaleidoris / Kartina / Kar / Sonnemo / Yolanka / Lanka / Cosulucian / Selaginella 等)称呼我。</p>
+        <p>♪为什么要在不同平台使用不同id?因为喜欢。</p>
+      </div>
+      <div class="intro">
+        <h2>Profilo❖Profile</h2>
+        <p>Github: <a href="https://github.com/wrefiyu">wrefiyu</a></p>
+        <p>ACFun: <a href="https://www.acfun.cn/u/69512701">Yolanka香水盒</a></p>
+        <p>ArtPlanet画世界: <a href="https://www.huashijie.art/user/index/16147898">Kar琳</a></p>
+        <p>Email: cyan0909young@qq.com</p>
+        <p>Delta Chat(不常上线):<a href="https://i.delta.chat/#D0E64A164ACAA5071668B1D488D74E1302D97323&v=3&i=zA78YdIHGKiyUzFfBShR_5N-&s=NOsviJLQEOEdMEw6oITEPxNw&a=dotpgyxfm%40nine.testrun.org&n=Kartina%E7%90%B3">长按选择复制链接</a></p>
+      </div>
+      <div class="intro">
+        <h2>Projekto❖Project</h2>
+        <p><a href="https://longtrail.art">LongTrail❖Art✱无限碑艺</a></p>
+      </div>
+      <div class="intro">
+        <h2>Estetiko❖Art</h2>
+        <p>业余平面设计。偏爱千禧年风格和故障美学，喜欢较低饱和和灰度的蓝色和紫色。</p>
+        <p>受《明日方舟》和其它平面设计影响极深。</p>
+        <p>同时喜欢梦核/怪核/池核/蒸汽波/Frutiger Areo。</p>
+        <p>也喜欢中式风格。</p>
+        <p>喜欢各类音乐。塞壬唱片/术曲/古典/摇滚/班德瑞/戏剧/民乐等</p>
+        <p>有点反感部分流行音乐。</p>
+        <p>极其喜欢中式建筑。</p>
+        <p>也感兴趣于工业设计。</p>
+      </div>
+      <div class="intro">
+        <h2>Ludo❖Game</h2>
+        <p>明日方舟(官服ID:Calivien)(淡游)</p>
+        <p>Osu!(@Kartina)(几乎退游)</p>
+        <p>MineCraft</p>
+        <p>星露谷物语(已退游)</p>
+        <p>BlueAchieve(国际服ID:Kar琳)(已退游)</p>
+        <p>ArrowMancer(已退游)</p>
+      </div>
+      <div class="intro">
+        <h2>Ligo❖Link</h2>
+        <p><a href="https://fuyukis.uk/">FuyukiS(Plej bona amiko❖Best Friend!!!)</a></p>
+      </div>
+      <div class="intro">
+        <h2>Malsana Flanko❖Dark Side</h2>
+        <p>在阅读<a href="darkside.html">这些文字</a>之前请做好心理准备，</p>
+        <p>它们记录了我一生的黑暗面。</p>
+        <p>除非你对我有足够了解，否则不要尝试去细心阅读它们。</p>
+      </div>      
+      <div class="intro">
+        <h2>Koncerno❖About</h2>
+        <p>这个页面用于简单介绍我</p>
+        <p>以及通过图像和文字发泄一些情绪</p>
+        <p>代码基本按要求由Gemeni不断修改生成。</p>
+        <p>本页以Apache-2.0发布</p>
+        <p>为什么做的那么花里胡哨</p>
+        <p>某种程度上我很喜欢</p>
+        <p>虽然自己能力太差导致很多地方和原来的设计出入极大</p>
+        <p>就这样吧</p>
+        <p>希望一个有梦的未来</p>
+        <p>要美好</p>
+        <p>要清醒</p>
+      </div>
+    </div>
+
+    <footer>
+      <p>© 2026 INNA.琳 ❖ Wishing Love and Peace</p>
+      <p>本站使用Gemini将部分设计落地(我是代码废)</p>
+      <p>MtF(嘘)🏳️‍⚧️无人称要求</p>
+      <p>Font: WenYue GuDianMingChaoTi</p>
+    </footer>
+  </div>
+
+  <script>
+    /**
+     * @Section 1: 地磁场背景 (Magnetic Dipole Field)
+     */
+    (function initMagneticField() {
+      const canvas = document.getElementById('magneticCanvas');
+      const ctx = canvas.getContext('2d');
+      const CONFIG = { lineColor: 'rgba(230, 248, 255, 0.95)', textColor: 'rgba(0, 72, 102, 0.9)', count: 18, baseSize: 100, rotationSpeed: 0.0006 };
+      let width, height, scrollY = 0;
+      function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+      window.addEventListener('resize', resize);
+      window.addEventListener('scroll', () => { scrollY = window.scrollY; });
+
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+        const cx = width * 0.66, cy = height * 0.33, angleOffset = scrollY * CONFIG.rotationSpeed;
+        for (let i = 1; i <= CONFIG.count; i++) {
+          const R = i * CONFIG.baseSize;
+          [0, Math.PI].forEach(side => {
+            ctx.beginPath(); ctx.strokeStyle = CONFIG.lineColor;
+            let label = null;
+            for (let t = 0; t <= Math.PI; t += 0.05) {
+              const r = R * Math.sin(t) * Math.sin(t);
+              const theta = t + side + angleOffset;
+              const x = cx + r * Math.cos(theta), y = cy + r * Math.sin(theta);
+              if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+              if (!label && t > Math.PI / 2) label = { x, y, ang: theta + Math.PI/2 };
+            }
+            ctx.stroke();
+            if (label && label.x > 0 && label.x < width && label.y > 0 && label.y < height) {
+              ctx.save(); ctx.translate(label.x, label.y); ctx.rotate(label.ang);
+              ctx.fillStyle = CONFIG.textColor; ctx.font = '9px monospace';
+              const lat = (Math.sin(scrollY * 0.001 + i) * 90).toFixed(2);
+              const lon = (((scrollY * 0.04) + i * 20 + (side * 50)) % 360 - 180).toFixed(1);
+              ctx.fillText(`${lat}°N ${lon}°E`, 0, 0); ctx.restore();
+            }
+          });
+        }
+        requestAnimationFrame(draw);
+      }
+      resize(); draw();
+    })();
+
+    /**
+     * @Section 2: 随机鸟类印记 (Bird Stamp Effects)
+     */
+    (function initBirdEffects() {
+      const canvas = document.getElementById('birdCanvas');
+      const ctx = canvas.getContext('2d');
+      const birds = [];
+      const birdImages = ['bird1.png', 'bird2.png', 'bird3.png'].map(src => {
+        const img = new Image(); img.src = src; return img;
+      });
+
+      function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+      window.addEventListener('resize', resize); resize();
+
+      class Stamp {
+        constructor(type, img) {
+          this.type = type; this.img = img; this.alive = true;
+          this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
+          this.rot = Math.random() * Math.PI * 2;
+          this.scale = (70 / (this.img.width || 100)) * (0.9 + Math.random() * 0.2);
+          this.opacity = 1; this.startTime = Date.now();
+          
+          this.vy = 0.5 + Math.random() * 0.8; // 统一缓慢下坠
+
+          if (type === 1) { this.flicker = false; }
+          else if (type === 2) { 
+            // 核心点：方向设定为图片正上方 (即旋转角 - 90度)
+            this.angle = this.rot - Math.PI / 2; 
+            this.marks = []; 
+            this.genTrail(); 
+          }
+          else if (type === 3) { 
+            this.vx = (Math.random()-0.5)*1.5; this.rv = (Math.random()-0.5)*0.04; 
+          }
+        }
+
+        async genTrail() {
+          const steps = [0, 50, 40, 30, 20, 10]; // 指定的残影步长
+          let currentDist = 0;
+          for (let i = 0; i < steps.length; i++) {
+            if (!this.alive) break;
+            currentDist += steps[i];
+            this.marks.push({
+              dx: Math.cos(this.angle) * currentDist,
+              dy: Math.sin(this.angle) * currentDist,
+              opacity: 0.5 + (i * 0.08), 
+              spawn: Date.now()
+            });
+            await new Promise(r => setTimeout(r, 20));
+          }
+        }
+
+        update() {
+          const age = (Date.now() - this.startTime) / 1000;
+          this.y += this.vy; // 统一位移逻辑
+
+          if (this.type === 1) {
+            if (age > 2) { this.opacity -= 0.05; this.flicker = Math.sin(Date.now()*0.2)>0; }
+            if (this.opacity <= 0 || this.y > canvas.height + 50) this.alive = false;
+          } else if (this.type === 2) {
+            let vis = false;
+            this.marks.forEach(m => {
+              if ((Date.now()-m.spawn)/1000 > 1.7) m.opacity -= 0.02;
+              if (m.opacity > 0) vis = true;
+            });
+            if (age > 4 && !vis || this.y > canvas.height + 150) this.alive = false;
+          } else if (this.type === 3) {
+            this.x += this.vx; this.rot += this.rv;
+            if (this.y > canvas.height + 50) this.alive = false;
+          }
+        }
+
+        draw() {
+          ctx.save();
+          if (this.type === 2) {
+            this.marks.forEach(m => {
+              if (m.opacity <= 0) return; ctx.globalAlpha = m.opacity;
+              ctx.setTransform(this.scale, 0, 0, this.scale, this.x + m.dx, this.y + m.dy);
+              ctx.rotate(this.rot); ctx.drawImage(this.img, -this.img.width/2, -this.img.height/2);
+            });
+          } else {
+            ctx.globalAlpha = (this.type===1 && this.flicker) ? this.opacity*0.3 : this.opacity;
+            ctx.translate(this.x, this.y); ctx.rotate(this.rot); ctx.scale(this.scale, this.scale);
+            ctx.drawImage(this.img, -this.img.width/2, -this.img.height/2);
+          }
+          ctx.restore();
+        }
+      }
+
+      function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for(let i=birds.length-1; i>=0; i--) {
+          birds[i].update(); birds[i].draw();
+          if(!birds[i].alive) birds.splice(i, 1);
+        }
+        requestAnimationFrame(loop);
+      }
+
+      function spawn() {
+        const img = birdImages[Math.floor(Math.random()*3)];
+        if (img.complete) birds.push(new Stamp(Math.floor(Math.random()*3)+1, img));
+        setTimeout(spawn, 300 + Math.random() * 700);
+      }
+      spawn(); loop();
+    })();
+
+    /**
+     * @Section 3: 系统特效与故障艺术 (保持原样)
+     */
+    function generateNoise() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.height = 100;
+      const idata = ctx.createImageData(100, 100);
+      for (let i = 0; i < idata.data.length; i += 4) {
+        const v = Math.random() * 255;
+        idata.data[i] = idata.data[i+1] = idata.data[i+2] = v; idata.data[i+3] = 255;
+      }
+      ctx.putImageData(idata, 0, 0);
+      document.getElementById('noise').style.backgroundImage = `url(${canvas.toDataURL()})`;
+    }
+
+    function spawnError() {
+      const win = document.createElement('div');
+      win.className = 'error-window';
+      win.style.left = Math.random() * 70 + '%'; win.style.top = Math.random() * 70 + '%';
+      win.innerHTML = `<div class="error-header"><span>何😇?Notice年</span><span>×</span></div>
+                       <div class="error-body">今夕是: ${Math.floor(Math.random()*4000)} 年</div>`;
+      document.body.appendChild(win);
+      setTimeout(() => { if(win) win.style.opacity = '0'; setTimeout(() => win.remove(), 500); }, 10000);
+    }
+
+    function createGlitches() {
+      const overlay = document.getElementById('glitch-overlay');
+      const slice = document.createElement('div');
+      const colors = ['#ffccd5', '#cce5ff', '#d5ffcc', '#fffacd', '#e6ccff'];
+      slice.style.cssText = `position:absolute; left:${Math.random()*100}%; top:${Math.random()*100}%; width:${Math.random()*150+50}px; height:2px; background:${colors[Math.floor(Math.random()*5)]}; transform:skewX(${Math.random()*40-20}deg);`;
+      overlay.appendChild(slice);
+      setTimeout(() => slice.remove(), 100);
+
+      const blockContainer = document.getElementById('glitch-blocks');
+      const block = document.createElement('div');
+      block.style.cssText = `position:absolute; left:${Math.random()*95}%; top:${Math.random()*95}%; width:${Math.random()*500+20}px; height:${Math.random()*5+2}px; background:rgba(0,242,255,${Math.random()*0.3}); box-shadow:${Math.random()>0.5 ? '2px 0 rgba(255,0,0,0.5)' : '-2px 0 rgba(0,255,0,0.5)'};`;
+      blockContainer.appendChild(block);
+      setTimeout(() => block.remove(), 400);
+    }
+
+    window.addEventListener('load', () => {
+      const startTime = Date.now();
+      const delay = Math.max(0, 500 - (Date.now() - startTime));
+      setTimeout(() => {
+        document.getElementById('loading-page').classList.add('loading-hidden');
+        document.body.classList.add('content-ready');
+        generateNoise();
+        setInterval(spawnError, 4000);
+        setInterval(createGlitches, 150);
+        setInterval(() => { document.body.style.opacity = Math.random() > 0.99 ? '0.96' : '1'; }, 100);
+      }, delay);
+    });
+  </script>
+</body>
+</html>

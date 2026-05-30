@@ -1,1 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人介绍</title>
+  <style>
+    /* --- 1. 等待画面 (保持原样) --- */
+    #loading-page {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(240, 247, 255, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      z-index: 999999; opacity: 1; visibility: visible;
+      transition: opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 2.5s;
+      pointer-events: all;
+    }
+    .loading-img { width: 180px; height: 180px; display: block; animation: spin-loading 2s linear infinite; }
+    .loading-text { margin-top: 30px; font-size: 18px; color: #b30000; font-family: "MingGu", serif; letter-spacing: 4px; font-weight: bold; text-align: center; }
+    @keyframes spin-loading { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .loading-hidden { opacity: 0 !important; visibility: hidden !important; }
 
+    /* --- 2. 外部资源与字体 --- */
+    @font-face {
+      font-family: "MingGu";
+      src: url("font.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    /* --- 3. 基础布局与背景层级 --- */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      line-height: 1.8; color: #1a202c;
+      background: url('back.png') no-repeat center top / cover fixed, #f0f7ff;
+      min-height: 100vh; position: relative; overflow-x: hidden;
+      font-family: "MingGu", sans-serif; visibility: hidden;
+    }
+    body.content-ready { visibility: visible; }
+
+    /* 特效层画布层级：磁场(-2) < 鸟印(-1) < 正文 */
+    #magneticCanvas, #birdCanvas { position: fixed; top: 0; left: 0; pointer-events: none; }
+    #magneticCanvas { z-index: -2; }
+    #birdCanvas { z-index: -1; }
+
+    /* 故障艺术背景组件 */
+    .bg-grid, .bg-noise, #glitch-overlay, #glitch-blocks { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    .bg-grid { background-image: linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px); background-size: 20px 20px; z-index: -4; }
+    .bg-noise { z-index: -3; opacity: 0.15; mix-blend-mode: multiply; }
+    #glitch-blocks { z-index: 99; overflow: hidden; }
+    #glitch-overlay { z-index: 100; }
+
+    /* 装饰组件 */
+    .error-window { position: fixed; backdrop-filter: blur(5px); opacity: 0.9; background: rgba(230, 242, 255, 0.6); border: 2px solid; border-color: #f0f8ff #b3d9ff #b3d9ff #f0f8ff; padding: 2px; width: 220px; z-index: 10; font-size: 12px; font-family: "MingGu", serif; pointer-events: none; transition: opacity 0.5s ease-out; }
+    .error-header { background: #b3d9ff; color: #336699; padding: 2px 5px; font-weight: bold; display: flex; justify-content: space-between; }
+    .error-body { padding: 10px; border: 1px inset #b3d9ff; margin-top: 2px; text-align: center; color: #446688; }
+    .screen-lines div { position: absolute; height: 100%; pointer-events: none; z-index: 5; }
+    .line-1 { right: 10%; width: 2px; background: rgba(255, 99, 71, 0.5); }
+    .line-2 { right: 18%; width: 4px; background: rgba(255, 165, 0, 0.4); }
+    .line-31 { right: 25%; width: 1px; background: rgba(60, 179, 113, 0.5); }
+    .line-32 { right: 26%; width: 5px; background: rgba(60, 179, 113, 0.3); }
+    .line-4 { left: 5%; width: 3px; background: rgba(106, 90, 205, 0.65); }
+    .line-5 { right: 35%; width: 2px; background: rgba(220, 180, 255, 0.3); box-shadow: 0 0 5px rgba(220, 180, 255, 0.5); }
+
+    .container { max-width: 800px; margin: 0 auto; padding: 6rem 2rem; position: relative; z-index: 20; }
+    .main-title { position: relative; font-family: "MingGu", serif; font-size: clamp(3rem, 8vw, 6rem); font-weight: 900; color: #000; }
+    .main-title::before, .main-title::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.7; }
+    .main-title::before { left: 4px; color: rgba(255, 105, 180, 0.35); }
+    .main-title::after { left: -4px; color: rgba(70, 130, 180, 0.5); }
+    .english-subtitle { font-size: clamp(1.2rem, 3vw, 1.8rem); font-weight: bold; color: white; display: inline-block; padding: 0 10px; margin-top: 1rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
+    h2 { font-family: "MingGu", serif; font-size: 1.5rem; color: #000; margin: 3rem 0 1rem; text-align: center; }
+    .intro { font-family: "MingGu", serif; font-style: italic; max-width: 600px; margin: 0 auto 2rem; text-align: center; color: #26181F; }
+    a { color: #26181F; }
+    footer { margin-top: 8rem; font-size: 0.8rem; color: #444; text-align: center; border-top: 1px solid #808080; padding: 2rem; }
+  </style>
+</head>
+<body>
+
+  <div id="loading-page">
+    <img src="waiting.png" alt="Loading" class="loading-img">
+    <div class="loading-text">请，离开...如真想继续，请稍候...</div>
+  </div>
+
+  <div id="glitch-blocks"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise" id="noise"></div>
+  <div id="glitch-overlay"></div>
+  <div class="screen-lines">
+    <div class="line-1"></div><div class="line-2"></div>
+    <div class="line-31"></div><div class="line-32"></div>
+    <div class="line-4"></div><div class="line-5"></div>
+  </div>
+
+  <canvas id="magneticCanvas"></canvas>
+  <canvas id="birdCanvas"></canvas>
+
+  <div class="container">
+    <div class="title-group">
+      <h1 class="main-title" data-text="明与晦">明与晦</h1>
+      <div class="english-subtitle">Malsana Flanko❖Dark Side</div>
+    </div>
+    
+    <div class="subtitle-wrapper">
+      <div class="intro">
+        <h2>无限悲意</h2>
+        <p>事实上，真正的琳酱可能在很久之前就死了。</p>
+        <p>是什么支撑着她走过了这半生?</p>
+        <p>严重的焦虑。一周4-5次的肠胃炎发作。</p>
+        <p>她失去了一切能被</p>
+        <p>称之为童心/天真的东西</p>
+        <p>而责任/顾虑/所谓良心与道德/所谓礼节与品行</p>
+        <p>让她成为傀儡</p>
+        <p>麻木</p>
+        <p>而</p>
+        <p>庸俗</p>
+        <p>说着梦呓</p>
+        <p>丢失自我</p>
+        <p>唱着也许没人喜欢的歌</p>
+        <p>在他们看来只是无病呻吟</p>
+      </div>
+      <div class="intro">
+        <h2>家</h2>
+        <p>家庭给了她温暖</p>
+        <p>吗?</p>
+        <p>只能感到，窒息</p>
+        <p>不敢表达。经常失语</p>
+        <p>家人脾气暴躁，或许她继承了这一点，但</p>
+        <p>更多时候她一句话也说不出</p>
+        <p>让我逃离...</p>
+        <p>让我逃离!!!!!!!!!</p>
+      </div>
+      <div class="intro">
+        <h2>伤</h2>
+        <p>被家人骂懦夫，白眼狼，在我还在上小学的时候起</p>
+        <p>被同学骂死肥猪，以及取各种绰号</p>
+        <p>事实上我怎么说也还算瘦了。应该。</p>
+        <p>严重的容貌焦虑</p>
+        <p>被骂记一辈子。但无言再去反驳</p>
+        <p>我真懦弱</p>
+        <p>我把很多事都搞砸了。</p>
+        <p>我对不起</p>
+        <p>所有人</p>
+      </div>
+      <div class="intro">
+        <h2>心</h2>
+        <p>她的心已经浊化了</p>
+        <p>如同一个破碎的棱镜般</p>
+        <p>失去了所有信赖与依靠</p>
+        <p>怀疑世界，怀疑亲人，怀疑朋友</p>
+        <p>怀疑自己，等待解离。</p>
+        <p>被</p>
+        <p>千万个</p>
+        <p>诡异的</p>
+        <p>人，事，责任，规矩</p>
+        <p>朝着不同方向</p>
+        <p>被撕裂成碎片</p>
+        <p>我颤抖着，但嘴被撕裂了</p>
+        <p>说不出话，麻木而死</p>
+      </div>
+      <div class="intro">
+        <h2>人</h2>
+        <p>希望被爱，更希望被理解</p>
+        <p>曾经混得熟的身边人大多</p>
+        <p>走了。</p>
+        <p>在</p>
+        <p>不属于自己的社交中</p>
+        <p>麻痹自己</p>
+        <p>假装融入</p>
+        <p>付出心血</p>
+        <p>累。</p>
+        <p>只想逃离</p>
+      </div>
+      <div class="intro">
+        <h2>性与暴力</h2>
+        <p>曾经色情成瘾，感觉什么事都能</p>
+        <p>通过快感逃避。</p>
+        <p>是M，自己会轻度割腕</p>
+        <p>无人时经常用刀具等尖锐物品乱刺自己大腿/膝盖和周围物品</p>
+        <p>性取向是女，幻想过</p>
+        <p>仰慕过许多女生</p>
+        <p>未能表白</p>
+        <p>性别认同是女</p>
+        <p>从小学开始拼命地压制第二性征，未全能成功</p>
+        <p>希望能磕药/吃糖或者在以后性别重置手术。</p>
+        <p>没有未来。</p>
+      </div>
+      <div class="intro">
+        <h2>杀</h2>
+        <p>我真的害怕，自己成为</p>
+        <p>罪人/坏人</p>
+        <p>有过杀的想法，但因此无比自责</p>
+        <p>并感到恐怖</p>
+        <p>多次走上天桥</p>
+        <p>没能如愿</p>
+        <p>想离开</p>
+        <p>这里不是我该在的地方</p>
+        <p>想去一个全是缤纷的梦的地方</p>
+        <p>而不是晦暗的这里</p>
+        <p>全是血，内脏，一些别人不要的废物。</p>
+      </div>    
+    </div>
+
+    <footer>
+      <p>© 2026 INNA.琳 ❖ Wishing Love and Peace</p>
+      <p>本站使用Gemini将部分设计落地(我是代码废)</p>
+      <p>感到不适?请，离，开，过上一个幸福的生。活。</p>
+      <p>Font: WenYue GuDianMingChaoTi</p>
+    </footer>
+  </div>
+
+  <script>
+    /**
+     * @Section 1: 地磁场背景 (Magnetic Dipole Field)
+     */
+    (function initMagneticField() {
+      const canvas = document.getElementById('magneticCanvas');
+      const ctx = canvas.getContext('2d');
+      const CONFIG = { lineColor: 'rgba(255, 51, 141, 0.5)', textColor: 'rgba(255, 8, 0, 0.9)', count: 16, baseSize: 70, rotationSpeed: 0.0006 };
+      let width, height, scrollY = 0;
+      function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+      window.addEventListener('resize', resize);
+      window.addEventListener('scroll', () => { scrollY = window.scrollY; });
+
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+        const cx = width * 0.66, cy = height * 0.33, angleOffset = scrollY * CONFIG.rotationSpeed;
+        for (let i = 1; i <= CONFIG.count; i++) {
+          const R = i * CONFIG.baseSize;
+          [0, Math.PI].forEach(side => {
+            ctx.beginPath(); ctx.strokeStyle = CONFIG.lineColor;
+            let label = null;
+            for (let t = 0; t <= Math.PI; t += 0.05) {
+              const r = R * Math.sin(t) * Math.sin(t);
+              const theta = t + side + angleOffset;
+              const x = cx + r * Math.cos(theta), y = cy + r * Math.sin(theta);
+              if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+              if (!label && t > Math.PI / 2) label = { x, y, ang: theta + Math.PI/2 };
+            }
+            ctx.stroke();
+            if (label && label.x > 0 && label.x < width && label.y > 0 && label.y < height) {
+              ctx.save(); ctx.translate(label.x, label.y); ctx.rotate(label.ang);
+              ctx.fillStyle = CONFIG.textColor; ctx.font = '9px monospace';
+              const lat = (Math.sin(scrollY * 0.001 + i) * 90).toFixed(2);
+              const lon = (((scrollY * 0.04) + i * 20 + (side * 50)) % 360 - 180).toFixed(1);
+              ctx.fillText(`${lat}°N ${lon}°E`, 0, 0); ctx.restore();
+            }
+          });
+        }
+        requestAnimationFrame(draw);
+      }
+      resize(); draw();
+    })();
+
+    /**
+     * @Section 2: 随机鸟类印记 (Bird Stamp Effects)
+     */
+    (function initBirdEffects() {
+      const canvas = document.getElementById('birdCanvas');
+      const ctx = canvas.getContext('2d');
+      const birds = [];
+      const birdImages = ['bird1.png', 'bird2.png', 'bird3.png'].map(src => {
+        const img = new Image(); img.src = src; return img;
+      });
+
+      function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+      window.addEventListener('resize', resize); resize();
+
+      class Stamp {
+        constructor(type, img) {
+          this.type = type; this.img = img; this.alive = true;
+          this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
+          this.rot = Math.random() * Math.PI * 2;
+          this.scale = (70 / (this.img.width || 100)) * (0.9 + Math.random() * 0.2);
+          this.opacity = 1; this.startTime = Date.now();
+          
+          this.vy = 0.5 + Math.random() * 0.8; // 统一缓慢下坠
+
+          if (type === 1) { this.flicker = false; }
+          else if (type === 2) { 
+            // 核心点：方向设定为图片正上方 (即旋转角 - 90度)
+            this.angle = this.rot - Math.PI / 2; 
+            this.marks = []; 
+            this.genTrail(); 
+          }
+          else if (type === 3) { 
+            this.vx = (Math.random()-0.5)*1.5; this.rv = (Math.random()-0.5)*0.04; 
+          }
+        }
+
+        async genTrail() {
+          const steps = [0, 50, 40, 30, 20, 10]; // 指定的残影步长
+          let currentDist = 0;
+          for (let i = 0; i < steps.length; i++) {
+            if (!this.alive) break;
+            currentDist += steps[i];
+            this.marks.push({
+              dx: Math.cos(this.angle) * currentDist,
+              dy: Math.sin(this.angle) * currentDist,
+              opacity: 0.5 + (i * 0.08), 
+              spawn: Date.now()
+            });
+            await new Promise(r => setTimeout(r, 20));
+          }
+        }
+
+        update() {
+          const age = (Date.now() - this.startTime) / 1000;
+          this.y += this.vy; // 统一位移逻辑
+
+          if (this.type === 1) {
+            if (age > 2) { this.opacity -= 0.05; this.flicker = Math.sin(Date.now()*0.2)>0; }
+            if (this.opacity <= 0 || this.y > canvas.height + 50) this.alive = false;
+          } else if (this.type === 2) {
+            let vis = false;
+            this.marks.forEach(m => {
+              if ((Date.now()-m.spawn)/1000 > 1.7) m.opacity -= 0.02;
+              if (m.opacity > 0) vis = true;
+            });
+            if (age > 4 && !vis || this.y > canvas.height + 150) this.alive = false;
+          } else if (this.type === 3) {
+            this.x += this.vx; this.rot += this.rv;
+            if (this.y > canvas.height + 50) this.alive = false;
+          }
+        }
+
+        draw() {
+          ctx.save();
+          if (this.type === 2) {
+            this.marks.forEach(m => {
+              if (m.opacity <= 0) return; ctx.globalAlpha = m.opacity;
+              ctx.setTransform(this.scale, 0, 0, this.scale, this.x + m.dx, this.y + m.dy);
+              ctx.rotate(this.rot); ctx.drawImage(this.img, -this.img.width/2, -this.img.height/2);
+            });
+          } else {
+            ctx.globalAlpha = (this.type===1 && this.flicker) ? this.opacity*0.3 : this.opacity;
+            ctx.translate(this.x, this.y); ctx.rotate(this.rot); ctx.scale(this.scale, this.scale);
+            ctx.drawImage(this.img, -this.img.width/2, -this.img.height/2);
+          }
+          ctx.restore();
+        }
+      }
+
+      function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for(let i=birds.length-1; i>=0; i--) {
+          birds[i].update(); birds[i].draw();
+          if(!birds[i].alive) birds.splice(i, 1);
+        }
+        requestAnimationFrame(loop);
+      }
+
+      function spawn() {
+        const img = birdImages[Math.floor(Math.random()*3)];
+        if (img.complete) birds.push(new Stamp(Math.floor(Math.random()*3)+1, img));
+        setTimeout(spawn, 300 + Math.random() * 700);
+      }
+      spawn(); loop();
+    })();
+
+    /**
+     * @Section 3: 系统特效与故障艺术 (保持原样)
+     */
+    function generateNoise() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.height = 100;
+      const idata = ctx.createImageData(100, 100);
+      for (let i = 0; i < idata.data.length; i += 4) {
+        const v = Math.random() * 255;
+        idata.data[i] = idata.data[i+1] = idata.data[i+2] = v; idata.data[i+3] = 255;
+      }
+      ctx.putImageData(idata, 0, 0);
+      document.getElementById('noise').style.backgroundImage = `url(${canvas.toDataURL()})`;
+    }
+
+    function spawnError() {
+      const win = document.createElement('div');
+      win.className = 'error-window';
+      win.style.left = Math.random() * 70 + '%'; win.style.top = Math.random() * 70 + '%';
+      win.innerHTML = `<div class="error-header"><span>👈您😭还好吗?</span><span>×</span></div>
+                       <div class="error-body">那■■已崩溃了 ${Math.floor(Math.random()*666666)} 次，■仍然，在承受。</div>`;
+      document.body.appendChild(win);
+      setTimeout(() => { if(win) win.style.opacity = '0'; setTimeout(() => win.remove(), 500); }, 10000);
+    }
+
+    function createGlitches() {
+      const overlay = document.getElementById('glitch-overlay');
+      const slice = document.createElement('div');
+      const colors = ['#ffccd5', '#cce5ff', '#d5ffcc', '#fffacd', '#e6ccff'];
+      slice.style.cssText = `position:absolute; left:${Math.random()*100}%; top:${Math.random()*100}%; width:${Math.random()*150+50}px; height:2px; background:${colors[Math.floor(Math.random()*5)]}; transform:skewX(${Math.random()*40-20}deg);`;
+      overlay.appendChild(slice);
+      setTimeout(() => slice.remove(), 100);
+
+      const blockContainer = document.getElementById('glitch-blocks');
+      const block = document.createElement('div');
+      block.style.cssText = `position:absolute; left:${Math.random()*95}%; top:${Math.random()*95}%; width:${Math.random()*500+20}px; height:${Math.random()*5+2}px; background:rgba(0,242,255,${Math.random()*0.3}); box-shadow:${Math.random()>0.5 ? '2px 0 rgba(255,0,0,0.5)' : '-2px 0 rgba(0,255,0,0.5)'};`;
+      blockContainer.appendChild(block);
+      setTimeout(() => block.remove(), 400);
+    }
+
+    window.addEventListener('load', () => {
+      const startTime = Date.now();
+      const delay = Math.max(0, 500 - (Date.now() - startTime));
+      setTimeout(() => {
+        document.getElementById('loading-page').classList.add('loading-hidden');
+        document.body.classList.add('content-ready');
+        generateNoise();
+        setInterval(spawnError, 4000);
+        setInterval(createGlitches, 150);
+        setInterval(() => { document.body.style.opacity = Math.random() > 0.99 ? '0.96' : '1'; }, 100);
+      }, delay);
+    });
+  </script>
+</body>
+</html>
